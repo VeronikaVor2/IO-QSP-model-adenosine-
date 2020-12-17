@@ -1,0 +1,98 @@
+<DATAFILE>
+
+[FILEINFO]
+file = '../ADOMLX_cleanfit/MLX_all.csv'
+delimiter = comma
+header = {Study, Model, Treat, ID, Day, value, EVID, ADM, AMT, YTYPE, TVinOrig, Ado, Tvin}
+
+[CONTENT]
+Study = {use=covariate, type=categorical}
+Model = {use=covariate, type=categorical}
+Treat = {use=covariate, type=categorical}
+ID = {use=identifier}
+Day = {use=time}
+value = {use=observation, name=y1, yname='1', type=continuous}
+EVID = {use=eventidentifier}
+ADM = {use=administration}
+AMT = {use=amount}
+YTYPE = {use=observationtype}
+
+<MODEL>
+
+[COVARIATE]
+input = {Study, Model}
+
+Study = {type=categorical, categories={CIV151, CIV226, CIV227, CIV258}}
+Model = {type=categorical, categories={CT26, MC38, MCA205}}
+
+[INDIVIDUAL]
+input = {TVin_pop, TVmax_pop, beff_pop, r_pop, kLn_pop, sL_pop, Kp_pop, Kado_pop, Vado_pop, IC50_pop, sR_pop, sCf_pop, Model, beta_TVin_Model_MC38, beta_TVin_Model_MCA205, beta_Vado_Model_MC38, beta_Vado_Model_MCA205, omega_sR, omega_sL, Study, beta_sL_Study_CIV226, beta_sL_Study_CIV227, beta_sL_Study_CIV258, beta_sR_Model_MC38, beta_sR_Model_MCA205}
+
+Model = {type=categorical, categories={CT26, MC38, MCA205}}
+Study = {type=categorical, categories={CIV151, CIV226, CIV227, CIV258}}
+
+DEFINITION:
+TVin = {distribution=logNormal, typical=TVin_pop, covariate=Model, coefficient={0, beta_TVin_Model_MC38, beta_TVin_Model_MCA205}, no-variability}
+TVmax = {distribution=logNormal, typical=TVmax_pop, no-variability}
+beff = {distribution=logNormal, typical=beff_pop, no-variability}
+r = {distribution=logNormal, typical=r_pop, no-variability}
+kLn = {distribution=logNormal, typical=kLn_pop, no-variability}
+sL = {distribution=logNormal, typical=sL_pop, covariate=Study, coefficient={0, beta_sL_Study_CIV226, beta_sL_Study_CIV227, beta_sL_Study_CIV258}, sd=omega_sL}
+Kp = {distribution=logNormal, typical=Kp_pop, no-variability}
+Kado = {distribution=logNormal, typical=Kado_pop, no-variability}
+Vado = {distribution=logNormal, typical=Vado_pop, covariate=Model, coefficient={0, beta_Vado_Model_MC38, beta_Vado_Model_MCA205}, no-variability}
+IC50 = {distribution=logNormal, typical=IC50_pop, no-variability}
+sR = {distribution=logNormal, typical=sR_pop, covariate=Model, coefficient={0, beta_sR_Model_MC38, beta_sR_Model_MCA205}, sd=omega_sR}
+sCf = {distribution=logNormal, typical=sCf_pop, no-variability}
+
+[LONGITUDINAL]
+input = {b1}
+
+file = '../ADOMLX_cleanfit/A2A_clean_tv.txt'
+
+DEFINITION:
+y1 = {distribution=normal, prediction=Tum, errorModel=proportional(b1)}
+
+<FIT>
+data = y1
+model = y1
+
+<PARAMETER>
+IC50_pop = {value=0.5, method=MLE}
+Kado_pop = {value=80, method=FIXED}
+Kp_pop = {value=478, method=MLE}
+TVin_pop = {value=2, method=MLE}
+TVmax_pop = {value=3500, method=FIXED}
+Vado_pop = {value=100000, method=FIXED}
+b1 = {value=0.3, method=MLE}
+beff_pop = {value=0.001, method=FIXED}
+beta_TVin_Model_MC38 = {value=0, method=FIXED}
+beta_TVin_Model_MCA205 = {value=0.6899999999999999, method=FIXED}
+beta_Vado_Model_MC38 = {value=-0.5, method=FIXED}
+beta_Vado_Model_MCA205 = {value=-3, method=FIXED}
+beta_sL_Study_CIV226 = {value=0, method=MLE}
+beta_sL_Study_CIV227 = {value=0, method=MLE}
+beta_sL_Study_CIV258 = {value=0, method=MLE}
+beta_sR_Model_MC38 = {value=0, method=MLE}
+beta_sR_Model_MCA205 = {value=0, method=MLE}
+kLn_pop = {value=175, method=MLE}
+omega_sL = {value=1, method=MLE}
+omega_sR = {value=1, method=MLE}
+r_pop = {value=0.42, method=MLE}
+sCf_pop = {value=1, method=FIXED}
+sL_pop = {value=2, method=MLE}
+sR_pop = {value=39.1, method=MLE}
+
+<MONOLIX>
+
+[TASKS]
+populationParameters()
+individualParameters(method = {conditionalMean, conditionalMode })
+fim(method = Linearization)
+logLikelihood(method = Linearization)
+plotResult(method = {outputplot, indfits, obspred, vpc, npc, residualsscatter, residualsdistribution, parameterdistribution, covariatemodeldiagnosis, randomeffects, covariancemodeldiagnosis, blq, predictiondistribution, likelihoodcontribution, categorizedoutput, saemresults, condmeanresults, fisher, likelihoodresults })
+
+[SETTINGS]
+GLOBAL:
+exportpath = 'run01_finalref'
+

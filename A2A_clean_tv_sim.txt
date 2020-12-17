@@ -1,0 +1,146 @@
+; =============================================
+;DESCRIPTION: 
+;model for adenosine project
+; =============================================
+;Based on CT26, MC38 and MCA205 tumor dynamics measurements in mice
+; =============================================
+
+;[COVARIATE]
+;input = {p1,p2}
+
+;DEFINITION:
+;Model = {type=categorical, categories={CT26, MC38, MCA205}, P(Model=CT26) = p1,P(Model=MC38) = p1,P(Model=MCA205) = p1}
+;Study = {type=categorical, categories={CIV151, CIV226, CIV227, CIV258}, P(Study=CIV151) = p2, P(Study=CIV258) = p2, P(Study=CIV226) = p2, P(Study=CIV227) = p2}
+
+[INDIVIDUAL]
+;input = {TVmax_pop, beff_pop, r_pop, kLn_pop, sL_pop, Kp_pop, Kado_pop, TVin_pop, IC50_pop, sR_pop, sCf_pop, Vado_pop, Model, beta_Vado_Model_MC38, beta_Vado_Model_MCA205, beta_TVin_Model_MC38, beta_TVin_Model_MCA205, omega_r, omega_kLn, Study, beta_sL_Study_CIV226, beta_sL_Study_CIV227, beta_sL_Study_CIV258, beta_sR_Study_CIV226, beta_sR_Study_CIV227, beta_sR_Study_CIV258}
+input = {TVmax_pop, beff_pop, r_pop, kLn_pop, sL_pop, Kp_pop, Kado_pop, TVin_pop, IC50_pop, sR_pop, sCf_pop, Vado_pop, Model, beta_Vado_Model_MC38, beta_Vado_Model_MCA205, beta_TVin_Model_MC38, beta_TVin_Model_MCA205, Study, beta_sL_Study_CIV226, beta_sL_Study_CIV227, beta_sL_Study_CIV258, beta_sR_Model_MC38, beta_sR_Model_MCA205, omega_sL, omega_sR}
+
+Model = {type=categorical, categories={CT26, MC38, MCA205}}
+Study = {type=categorical, categories={CIV151, CIV226, CIV227, CIV258}}
+DEFINITION:
+TVmax = {distribution=logNormal, typical=TVmax_pop, no-variability}
+beff = {distribution=logNormal, typical=beff_pop, no-variability}
+r = {distribution=logNormal, typical=r_pop, no-variability}
+kLn = {distribution=logNormal, typical=kLn_pop, no-variability}
+sL = {distribution=logNormal, typical=sL_pop, covariate=Study, coefficient={0, beta_sL_Study_CIV226, beta_sL_Study_CIV227, beta_sL_Study_CIV258}, sd=omega_sL}
+Kp = {distribution=logNormal, typical=Kp_pop, no-variability}
+Kado = {distribution=logNormal, typical=Kado_pop, no-variability}
+IC50 = {distribution=logNormal, typical=IC50_pop, no-variability}
+;sR = {distribution=logNormal, typical=sR_pop, covariate=Study, coefficient={0, beta_sR_Study_CIV226, beta_sR_Study_CIV227, beta_sR_Study_CIV258},  sd=omega_sR}
+sR = {distribution=logNormal, typical=sR_pop, covariate=Model, coefficient={0, beta_sR_Model_MC38, beta_sR_Model_MCA205}, sd=omega_sR}
+sCf = {distribution=logNormal, typical=sCf_pop, no-variability}
+Vado = {distribution=logNormal, typical=Vado_pop, covariate=Model, coefficient={0, beta_Vado_Model_MC38, beta_Vado_Model_MCA205}, no-variability}
+TVin = {distribution=logNormal, typical=TVin_pop, covariate=Model, coefficient={0, beta_TVin_Model_MC38, beta_TVin_Model_MCA205}, no-variability}
+
+[LONGITUDINAL]
+input =  {TVin,TVmax, beff, r, kLn, sL, Kp, Kado, Vado, IC50,sR,sCf,cytotox,cytost,vacc,cd73,act,Ag_fl};,act,dnr}
+;TVin = {use = regressor}
+
+; =============================================
+PK:
+; =============================================
+;    ============= PD-L1 Ab ===================
+	convF1 = 6.66	; 10/1.5 mAb mg->nmol
+	kainput1 = 8    ; 1/d, mAb i.p.absorption rate
+	Vc = 0.003	; L, mAb volume of distribution
+	kelmab = 0.1    ; 0.1    ; 1/d mAb elimination
+	compartment(cmt=1, amount=Ac1)       			  	
+	absorption(adm=1, cmt=1, ka=kainput1, p=convF1)
+;  ============== AZD4635 =====================
+	compartment(cmt=2, amount=Ad2)  
+	depot(adm=2, target=Ad2)
+	Vmaxabs_azd = 12.6  ; mg/day 
+	EC50abs_azd = 0.178 ; mg
+	Q_azd	    = 9.58  ; L/day 
+	kel_azd     = 320   ; 1/day 
+	Vc_azd	    = 0.0476; L
+	Vp_azd	    = 1.43  ; L
+	Kd_azd=13.43
+	Kd_ado=1182
+;	cytotox = 0
+;	cytost  = 0
+;	vacc    = 0 
+;	cd73    = 0
+; =============================================
+
+; =============================================
+EQUATION:
+; =============================================
+	; Always use stiff solver
+	; -----------------------
+	odeType = stiff
+;============== AZD4635 PK =====================
+	ddt_Ac1= -kelmab*Ac1	
+
+	ddt_Ad2=-(Vmaxabs_azd*Ad2/(Ad2+EC50abs_azd))
+	ddt_Ac2=(Vmaxabs_azd*Ad2/(Ad2+EC50abs_azd)) - (kel_azd*Ac2) -((Q_azd/Vc_azd)*Ac2-(Q_azd/Vp_azd)*Ap2)
+ 	ddt_Ap2=((Q_azd/Vc_azd)*Ac2-(Q_azd/Vp_azd)*Ap2)
+
+;============== known parameters =====================
+   
+	Kd1 = 30	; nM, mAb/PD-L1 binding affinity
+	kel =  0.2	; 1/d, half-life of Tn naive ~10 days
+	kapo = 2.0	; 1/d, half-life of CTL ~1 days
+	kpro = 3	; 1/d, maximal T cells proliferation rate
+        kdif = 3.2	; 1/d, maximal T cells differentiaon rate
+	;a = 0.6	        ; 1/d, tumor growth rate
+	;TVmax = 3500   ; uL, tumor growth limit
+	d = 0.01	; 1/d,  slow "spontaneous" tumor cells death rate
+	km_to = 1 	; 1/d, fixed 
+	Vmax_supr=0.7
+
+	if t>7&Tum<10
+	xf=0
+	else
+ 	xf = 1
+	end
+
+	if t>7
+ 	tr_fac = 1
+    else
+	tr_fac = 0
+	end
+;============== Model variables =====================	
+; ------occupancy calculation------------
+	Cc1 = Ac1/Vc                ; nM, mAb
+	Cc2 = Ac2/Vc_azd/315.73*1e6 ; nM, AZD4635 free
+	PDL1free = PDL1/(1+Cc1/Kd1)  
+        
+; -------variables------------	
+       	A2ARoccup= (Ado*sCf/Kd_ado)/(1 + Ado*sCf/Kd_ado + Cc2/Kd_azd)  
+        Ado_suppr= Vmax_supr*A2ARoccup/(A2ARoccup + IC50)
+	TKR= (beff*CTL+d)   ; uL/d - tumor shrinkage rate 
+	Ag =  TKR*Tum*(1-Ado_suppr)*Ag_fl*(1+vacc*tr_fac); 
+	Ag_norm =  TKR*(1-Ado_suppr)*Ag_fl*(1+vacc*tr_fac)
+	PRfunc = (1-PDL1free)*(1 - Ag/(Ag + sR)*(1-cytost*tr_fac))*(1-Ado_suppr) ;  Proliferation Rate function 
+	;TNinf = kLn*M1+sL*TKR*M1;   cells/day CD8 precursors influx to tumor "node" (1 uL)   
+        TNinf = kLn*Ag/(Ag+sL)*(1+act*tr_fac) 
+	CD8_tot=CTL+TN
+	ISC=( Ag/(Ag + sR))*(1-cytost*tr_fac)
+	sL_out = sL
+	sR_out = sR
+; ------- Initial conditions -------
+        t0  = 0  
+	Tum_0 = TVin     ; uL, tumor volume 
+
+
+;----------------- Model reactions-------
+	Tum_gr = Tum*r*(1 - Tum/(TVmax))*xf	
+	Tum_kill3 =  (beff*CTL+d)*Tum
+	CTL_dynamic1 = TNinf+kpro*PRfunc*TN-kel*TN
+	CTL_dynamic2 = kdif*PRfunc*TN
+	CTL_dynamic5 = kapo*CTL 
+	; Differential equations
+	; ----------------------
+	ddt_Tum = +Tum_gr - Tum_kill3
+	ddt_TN = +CTL_dynamic1-CTL_dynamic2
+	ddt_CTL = +CTL_dynamic2-CTL_dynamic5
+	ddt_PDL1 = (CTL/(CTL + Kp) - PDL1)	
+	ddt_Ado=  Vado*Tum*(1-cd73*tr_fac)/(Tum+ Kado) - Ado      ; should be in 1000 .. 100000 nM
+;	ddt_Tum_obs=  100*(Tum -Tum_obs)
+
+; =============================================
+OUTPUT:
+; =============================================
+	output = {Tum}
