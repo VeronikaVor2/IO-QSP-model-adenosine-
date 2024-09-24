@@ -36,7 +36,7 @@ param_pop <- c(param_pop,"cd73" = 0, "cytost" = 0, "cytotox" = 0, "vacc" = 0,"ac
 
 ## define treatment groups
 adm0   <- list(time = seq(from = 7,to = 22,by = 3.5), amount = 0,target = "Ac1")       ## placebo
-adm1   <- list(time = seq(from = 7,to = 22,by = 3.5), amount = 2*6.66,target = "Ac1")  ## PD-L1
+adm1   <- list(time = seq(from = 7,to = 22,by = 3.5), amount = 0.125,target = "Ac1")  ## PD-L1
 adm2   <- list(time = seq(from = 7,to = 22,by = 0.5), amount = 1.25,target = "Ad2")    ## AZD4635
 ## define covariates
 ind <- list(name = c("Model","Study","sR","sL"))
